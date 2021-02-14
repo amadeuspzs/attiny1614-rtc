@@ -31,8 +31,8 @@ void setup() {
   /* Initialize RTC: */
   while (RTC.STATUS > 0);
   /* 32.768kHz External Crystal Oscillator (XOSC32K) */
-//  RTC.CLKSEL = RTC_CLKSEL_TOSC32K_gc;
-  RTC.CLKSEL = RTC_CLKSEL_INT32K_gc; // internal
+  RTC.CLKSEL = RTC_CLKSEL_TOSC32K_gc;
+//    RTC.CLKSEL = RTC_CLKSEL_INT32K_gc; // internal
 
   RTC.PITINTCTRL = RTC_PI_bm; /* Periodic Interrupt: enabled */
 
@@ -44,7 +44,6 @@ void setup() {
   sei(); // enable interrupts
   SLPCTRL.CTRLA |= SLPCTRL_SMODE_PDOWN_gc; // power down mode
   SLPCTRL.CTRLA |= SLPCTRL_SEN_bm;
-
 }
 
 void loop() {
