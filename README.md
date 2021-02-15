@@ -5,7 +5,7 @@ Use the built-in RTC/PIT functionality for clock/alarm functionality. Avoid exte
 ## Background reading
 
 * [ATtiny1614 datasheet](https://ww1.microchip.com/downloads/en/DeviceDoc/ATtiny1614-16-17-DataSheet-DS40002204A.pdf)
-* [Application note TB 3213](https://www.microchip.com/wwwappnotes/appnotes.aspx?appnote=en609105)
+* [Technical Brief (TB) 3213](https://www.microchip.com/wwwappnotes/appnotes.aspx?appnote=en609105)
 * [megaTinyCore](https://github.com/SpenceKonde/megaTinyCore)
 
 ## Arduino setup

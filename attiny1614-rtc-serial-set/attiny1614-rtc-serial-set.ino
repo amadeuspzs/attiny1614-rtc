@@ -9,12 +9,28 @@ typedef struct{
   unsigned int year;
 } time;
 
+int serialPin = PIN_PB1; // for interrupt into serial mode
+volatile bool serialMode = false; // flag for detecting serial mode
+bool serialEnabled = false;
+
 volatile time t;
 
 char timestamp[14]; // YYYYMMDDHHMMSS from serial input
 char timeOnly[6]; // HHMMSS
 
 void setup() {
+  /* Switch off serial pins until we need them */
+  pinMode(PIN_PA1, INPUT_PULLUP);
+  pinMode(PIN_PA2, INPUT_PULLUP);
+  
+  /* Switch off unused pins */  
+  pinMode(PIN_PA3, INPUT_PULLUP);
+  pinMode(PIN_PA4, INPUT_PULLUP);
+  pinMode(PIN_PA5, INPUT_PULLUP);
+  pinMode(PIN_PA6, INPUT_PULLUP);
+  pinMode(PIN_PA7, INPUT_PULLUP);
+  pinMode(PIN_PB0, INPUT_PULLUP);
+  
   uint8_t temp;
 
   /* Initialize 32.768kHz Oscillator: */
@@ -49,48 +65,73 @@ void setup() {
   RTC.PITCTRLA = RTC_PERIOD_CYC32768_gc /* RTC Clock Cycles 32768 */
                | RTC_PITEN_bm; /* Enable: enabled */
 
+  pinMode(serialPin, INPUT_PULLUP);
+  attachInterrupt(serialPin,serialISR,FALLING);
   sei(); // enable interrupts
 
   Serial.swap(1);  
-  Serial.begin(9600);
+  set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+  sleep_enable();
 }
 
 void loop() {
-  if (Serial.available() > 0) {
-    // read the incoming byte:
-    char incomingByte = Serial.read();
-
-    if (incomingByte == 115) { // s(et) timestamp mode
-      Serial.println("Enter timestamp: YYYYMMDDHHMMSS");
-
-      while (Serial.available() < 14); // wait for serial input
-      for (int i=0; i<14; i++) {
-        timestamp[i] = Serial.read();
-      }
-      t.year = 1000 * (timestamp[0] - '0') + 100 * (timestamp[1] - '0') + 10 * (timestamp[2] - '0') + (timestamp[3] - '0');
-      t.month = 10 * (timestamp[4] - '0') + (timestamp[5] - '0');
-      t.date = 10 * (timestamp[6] - '0') + (timestamp[7] - '0');
-      t.hour = 10 * (timestamp[8] - '0') + (timestamp[9] - '0');
-      t.minute = 10 * (timestamp[10] - '0') + (timestamp[11] - '0');
-      t.second = 10 * (timestamp[12] - '0') + (timestamp[13] - '0');
-      printTimestamp();
-    } else if (incomingByte == 99) { // c(lock) set mode
-      Serial.println("Enter clock time: HHMMSS");
-      while (Serial.available() < 6); // wait for serial input
-      for (int i=0; i<6; i++) {
-        timeOnly[i] = Serial.read();
-      }
-      t.hour = 10 * (timeOnly[0] - '0') + (timeOnly[1] - '0');
-      t.minute = 10 * (timeOnly[2] - '0') + (timeOnly[3] - '0');
-      t.second = 10 * (timeOnly[4] - '0') + (timeOnly[5] - '0');
-      printTimestamp();
-    } else if (incomingByte == 114) { // r(ead) mode
-      printTimestamp();
-    } else {
-      Serial.println("Command not recognised.\n\ns(et timestamp), c(lock set) or r(read)?");
+  if (serialMode) {
+    if (!serialEnabled) {
+      Serial.begin(9600);
+      while (!Serial);
+      serialEnabled = true;
+      Serial.println("Entering serial mode");
     }
-  } // end if serial available
-}
+    
+    if (Serial.available() > 0) {
+      // read the incoming byte:
+      char incomingByte = Serial.read();
+    
+      if (incomingByte == 115) { // s(et) timestamp mode
+        Serial.println("Enter timestamp: YYYYMMDDHHMMSS");
+    
+        while (Serial.available() < 14); // wait for serial input
+        for (int i=0; i<14; i++) {
+          timestamp[i] = Serial.read();
+        }
+        t.year = 1000 * (timestamp[0] - '0') + 100 * (timestamp[1] - '0') + 10 * (timestamp[2] - '0') + (timestamp[3] - '0');
+        t.month = 10 * (timestamp[4] - '0') + (timestamp[5] - '0');
+        t.date = 10 * (timestamp[6] - '0') + (timestamp[7] - '0');
+        t.hour = 10 * (timestamp[8] - '0') + (timestamp[9] - '0');
+        t.minute = 10 * (timestamp[10] - '0') + (timestamp[11] - '0');
+        t.second = 10 * (timestamp[12] - '0') + (timestamp[13] - '0');
+        printTimestamp();
+      } else if (incomingByte == 99) { // c(lock) set mode
+        Serial.println("Enter clock time: HHMMSS");
+        while (Serial.available() < 6); // wait for serial input
+        for (int i=0; i<6; i++) {
+          timeOnly[i] = Serial.read();
+        }
+        t.hour = 10 * (timeOnly[0] - '0') + (timeOnly[1] - '0');
+        t.minute = 10 * (timeOnly[2] - '0') + (timeOnly[3] - '0');
+        t.second = 10 * (timeOnly[4] - '0') + (timeOnly[5] - '0');
+        printTimestamp();
+      } else if (incomingByte == 114) { // r(ead) mode
+        printTimestamp();
+      } else if (incomingByte == 113) { // q(uit) back to sleep
+        Serial.println("Going back to sleep");
+        Serial.flush();
+        Serial.end();
+        serialEnabled = false;
+        serialMode = false;
+        // return serial pins to PULLUP for power saving
+        pinMode(PIN_PA1, INPUT_PULLUP);
+        pinMode(PIN_PA2, INPUT_PULLUP);
+        attachInterrupt(serialPin,serialISR,FALLING);
+        sleep_cpu();
+      } else {
+        Serial.println("Command not recognised.\n\ns(et timestamp), c(lock set), r(read) or q(uit)?");
+      } // end checking for one character
+    } // end if serial available
+  } else { // end serialMode
+    sleep_cpu();
+  }
+} // end loop
 
 void printTimestamp() {
   Serial.print(t.date);
@@ -170,4 +211,9 @@ static char not_leap(void)      //check for leap year
   {
     return (char)(t.year%4);
   }
+}
+
+void serialISR() {
+  detachInterrupt(serialPin);
+  serialMode = true;
 }
