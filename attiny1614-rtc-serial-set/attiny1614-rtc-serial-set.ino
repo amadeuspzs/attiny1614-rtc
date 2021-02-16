@@ -19,6 +19,9 @@ char timestamp[14]; // YYYYMMDDHHMMSS from serial input
 char timeOnly[6]; // HHMMSS
 
 void setup() {
+  /* Define serial mode switch input */
+  pinMode(serialPin, INPUT_PULLUP);
+    
   /* Switch off serial pins until we need them */
   pinMode(PIN_PA1, INPUT_PULLUP);
   pinMode(PIN_PA2, INPUT_PULLUP);
@@ -65,8 +68,7 @@ void setup() {
   RTC.PITCTRLA = RTC_PERIOD_CYC32768_gc /* RTC Clock Cycles 32768 */
                | RTC_PITEN_bm; /* Enable: enabled */
 
-  pinMode(serialPin, INPUT_PULLUP);
-  attachInterrupt(serialPin,serialISR,FALLING);
+  attachInterrupt(serialPin,serialISR,LOW); // LEVEL change (LOW) works during power down sleep
   sei(); // enable interrupts
 
   Serial.swap(1);  
@@ -122,7 +124,8 @@ void loop() {
         // return serial pins to PULLUP for power saving
         pinMode(PIN_PA1, INPUT_PULLUP);
         pinMode(PIN_PA2, INPUT_PULLUP);
-        attachInterrupt(serialPin,serialISR,FALLING);
+        attachInterrupt(serialPin,serialISR,LOW); // LOW = LEVEL and is enabled during powerdown sleep
+        sleep_enable();
         sleep_cpu();
       } else {
         Serial.println("Command not recognised.\n\ns(et timestamp), c(lock set), r(read) or q(uit)?");
@@ -199,7 +202,7 @@ ISR(RTC_PIT_vect)
     }
   }
 
-}
+} // end ISR
 
 static char not_leap(void)      //check for leap year
 {
@@ -211,9 +214,10 @@ static char not_leap(void)      //check for leap year
   {
     return (char)(t.year%4);
   }
-}
+} // end not_leap
 
 void serialISR() {
   detachInterrupt(serialPin);
+  sleep_disable();
   serialMode = true;
-}
+} // end serialISR
