@@ -17,7 +17,7 @@ typedef struct{
   unsigned char hour;
 } alarm;
 
-int serialPin = PIN_PB1; // for interrupt into serial mode
+int serialPin = PIN_PB1; // for interrupt into serial mode via DTR
 volatile bool serialMode = false; // flag for detecting serial mode
 bool serialEnabled = false;
 bool alarmEvent = false;
@@ -269,6 +269,7 @@ static char not_leap(void)      //check for leap year
   }
 } // end not_leap
 
+// connect serialPin to DTR to trigger an interrupt when serial connection attempted
 void serialISR() {
   detachInterrupt(serialPin);
   sleep_disable();
