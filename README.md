@@ -15,3 +15,11 @@ ATtiny1614 running with 20 MHz internal RC oscillator and [12.5pF 32.768Khz watc
 ![Schematic](https://user-images.githubusercontent.com/534681/107887522-a0980d00-6efe-11eb-9ff9-68b01d6c64d1.png)
 
 Flashed using UPDI.
+
+## Alarm circuit (post flash)
+![Schematic](https://user-images.githubusercontent.com/534681/108268478-7b0c3d00-7164-11eb-9a1d-9236b284c03f.png)
+
+* Baseline power consumption: `1.3uA`
+* Serial mode entered via DTR signal on serial monitor connect, power consumption: `1.6mA`
+* LED consumption at V<sub>cc</sub> 4.5V, forward voltage 2.9V: `20mA`
+* Date, time and alarm programmed over serial (9600 baud)

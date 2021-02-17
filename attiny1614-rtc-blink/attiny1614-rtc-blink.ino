@@ -40,6 +40,16 @@ void setup() {
                | RTC_PITEN_bm; /* Enable: enabled */
 
   pinMode(led, OUTPUT);
+  
+  // define unused pins as PULLUP to save power
+  pinMode(PIN_PA1, INPUT_PULLUP);
+  pinMode(PIN_PA2, INPUT_PULLUP);
+  pinMode(PIN_PA3, INPUT_PULLUP);
+  pinMode(PIN_PA4, INPUT_PULLUP);
+  pinMode(PIN_PA6, INPUT_PULLUP);
+  pinMode(PIN_PA7, INPUT_PULLUP);
+  pinMode(PIN_PB0, INPUT_PULLUP);
+  pinMode(PIN_PB1, INPUT_PULLUP);
 
   sei(); // enable interrupts
   SLPCTRL.CTRLA |= SLPCTRL_SMODE_PDOWN_gc; // power down mode
