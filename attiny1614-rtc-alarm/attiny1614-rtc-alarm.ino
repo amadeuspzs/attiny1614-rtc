@@ -17,7 +17,7 @@ typedef struct{
   unsigned char hour;
 } alarm;
 
-int serialPin = PIN_PB1; // for interrupt into serial mode via DTR
+int serialPin = PIN_PA3; // for interrupt into serial mode via DTR
 volatile bool serialMode = false; // flag for detecting serial mode
 bool serialEnabled = false;
 bool alarmEvent = false;
@@ -47,11 +47,12 @@ void setup() {
   pinMode(PIN_PA2, INPUT_PULLUP);
   
   /* Switch off unused pins */  
-  pinMode(PIN_PA3, INPUT_PULLUP);
   pinMode(PIN_PA4, INPUT_PULLUP);
   pinMode(PIN_PA5, INPUT_PULLUP);
   pinMode(PIN_PA6, INPUT_PULLUP);
   pinMode(PIN_PA7, INPUT_PULLUP);
+  pinMode(PIN_PB0, INPUT_PULLUP);
+  pinMode(PIN_PB1, INPUT_PULLUP);
   
   uint8_t temp;
 
