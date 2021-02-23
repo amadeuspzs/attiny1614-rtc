@@ -8,16 +8,17 @@ typedef struct{
   unsigned char date;
   unsigned char month;
   unsigned int year;
+  unsigned char dow; // day of week
 } time;
 
-// alarm structure - todo - day of week alarm(s)
+// alarm structure
 typedef struct{
   unsigned char second;
   unsigned char minute;
   unsigned char hour;
 } alarm;
 
-int serialPin = PIN_PA3; // for interrupt into serial mode via DTR
+int serialPin = PIN_PA3; // for interrupt into serial mode via DTR/RTS
 volatile bool serialMode = false; // flag for detecting serial mode
 bool serialEnabled = false;
 bool alarmEvent = false;
@@ -30,7 +31,8 @@ int transition = int((float(fadeLength) * 60.0 * 1000.0) / (255.0 / float(fadeAm
 int wakeLength = 8; // in minutes, in addition to fadeLength
 
 volatile time t;
-alarm a;
+alarm weekday;
+alarm weekend;
 
 char timestamp[14]; // YYYYMMDDHHMMSS from serial input
 char timeOnly[6]; // HHMMSS
@@ -121,10 +123,7 @@ void loop() {
         delay(100);
       }
       Serial.println("\n\nWelcome to serial mode");
-      Serial.println("Current timestamp:");
-      printTimestamp();
-      Serial.println("\nAlarm:");
-      printAlarm();
+      showState();
     }
     
     if (Serial.available() > 0) {
@@ -132,18 +131,21 @@ void loop() {
       char incomingByte = Serial.read();
     
       if (incomingByte == 115) { // s(et) timestamp mode
-        Serial.println("Enter timestamp: YYYYMMDDHHMMSS");
+        Serial.println("Enter timestamp: YYYYMMDDHHMMSSO");
     
-        while (Serial.available() < 14); // wait for serial input
+        while (Serial.available() < 15); // wait for serial input
         for (int i=0; i<14; i++) {
           timestamp[i] = Serial.read();
         }
+        char dow = Serial.read();
+        
         t.year = 1000 * (timestamp[0] - '0') + 100 * (timestamp[1] - '0') + 10 * (timestamp[2] - '0') + (timestamp[3] - '0');
         t.month = 10 * (timestamp[4] - '0') + (timestamp[5] - '0');
         t.date = 10 * (timestamp[6] - '0') + (timestamp[7] - '0');
         t.hour = 10 * (timestamp[8] - '0') + (timestamp[9] - '0');
         t.minute = 10 * (timestamp[10] - '0') + (timestamp[11] - '0');
         t.second = 10 * (timestamp[12] - '0') + (timestamp[13] - '0');
+        t.dow = dow - '0';
         printTimestamp();
       } else if (incomingByte == 99) { // c(lock) set mode
         Serial.println("Enter clock time: HHMMSS");
@@ -156,20 +158,27 @@ void loop() {
         t.second = 10 * (timeOnly[4] - '0') + (timeOnly[5] - '0');
         printTimestamp();
       } else if (incomingByte == 97) { // a(larm) set mode
+        Serial.println("Week(d)ay or Week(e)nd?");
+        while (Serial.available() < 1); // wait for serial input
+        char alarmType = Serial.read();
+        alarm *thisAlarm;
+        if (alarmType == 100) { // weekday
+          thisAlarm = &weekday;
+        } else {
+          thisAlarm = &weekend;  
+        }
         Serial.println("Enter alarm time: HHMMSS");
         while (Serial.available() < 6); // wait for serial input
         for (int i=0; i<6; i++) {
           timeOnly[i] = Serial.read();
         }
-        a.hour = 10 * (timeOnly[0] - '0') + (timeOnly[1] - '0');
-        a.minute = 10 * (timeOnly[2] - '0') + (timeOnly[3] - '0');
-        a.second = 10 * (timeOnly[4] - '0') + (timeOnly[5] - '0');
-        printAlarm();
+        
+        thisAlarm->hour = 10 * (timeOnly[0] - '0') + (timeOnly[1] - '0');
+        thisAlarm->minute = 10 * (timeOnly[2] - '0') + (timeOnly[3] - '0');
+        thisAlarm->second = 10 * (timeOnly[4] - '0') + (timeOnly[5] - '0');
+        printAlarm((alarmType == 100) ? "weekday" : "weekend");
       } else if (incomingByte == 114) { // r(ead) mode
-        Serial.println("Current timestamp:");
-        printTimestamp();
-        Serial.println("\nAlarm:");
-        printAlarm();
+        showState();
       } else if (incomingByte == 113) { // q(uit) back to sleep
         Serial.println("Going back to sleep");
         Serial.flush();
@@ -196,15 +205,19 @@ void printTimestamp() {
   Serial.print(":");
   Serial.print(t.minute);
   Serial.print(":");
-  Serial.println(t.second);  
+  Serial.print(t.second);  
+  Serial.print(" ");
+  Serial.println(t.dow);
 } // end printTimestamp
 
-void printAlarm() {
-  Serial.print(a.hour);
+void printAlarm(String type) {
+  alarm *thisAlarm;
+  thisAlarm = (type == "weekend") ? &weekend : &weekday;
+  Serial.print(thisAlarm->hour);
   Serial.print(":");
-  Serial.print(a.minute);
+  Serial.print(thisAlarm->minute);
   Serial.print(":");
-  Serial.println(a.second);  
+  Serial.println(thisAlarm->second);  
 } // end printTimestamp
 
 ISR(RTC_PIT_vect)
@@ -221,6 +234,9 @@ ISR(RTC_PIT_vect)
       if (++t.hour==24)
       {
         t.hour=0;
+        if (++t.dow==7) {
+          t.dow = 0;
+        }
         if (++t.date==32)
         {
           t.month++;
@@ -259,10 +275,13 @@ ISR(RTC_PIT_vect)
     }
   }
 
-  // check alarm
-  if (t.hour == a.hour && t.minute == a.minute && t.second == a.second) {
-    sleep_disable();
-    alarmEvent = true;
+  // check alarms
+  // 0 = Sunday, 6 = Saturday
+  alarm *thisAlarm = (t.dow > 0 && t.dow < 6) ? &weekday : &weekend;
+
+  if (t.hour == thisAlarm->hour && t.minute == thisAlarm->minute && t.second == thisAlarm->second) {
+      sleep_disable();
+      alarmEvent = true;
   }
 
 } // end ISR
@@ -335,3 +354,12 @@ void closeSerial() {
   pinMode(PIN_PA2, INPUT_PULLUP);
   attachInterrupt(serialPin,serialISR,LOW); // LOW = LEVEL and is enabled during powerdown sleep
 } // end closeSerial
+
+void showState() {
+  Serial.println("Current timestamp:");
+  printTimestamp();
+  Serial.println("\nAlarm (weekday):");
+  printAlarm("weekday");
+  Serial.println("\nAlarm (weekend):");
+  printAlarm("weekend");
+} // end showState
