@@ -22,7 +22,7 @@ volatile bool serialMode = false; // flag for detecting serial mode
 bool serialEnabled = false;
 bool alarmEvent = false;
 
-int led = PIN_PB0;
+int led = PIN_PB1;
 int brightness = 255; // inverse logic - start HIGH = off
 int fadeAmount = 1; // step for fade up
 int fadeLength = 2; // in minutes
@@ -115,7 +115,16 @@ void loop() {
       Serial.begin(9600);
       while (!Serial);
       serialEnabled = true;
-      Serial.println("Entering serial mode");
+      // allow serial adapters to come online
+      for (int i=0; i<20; i++) {
+        Serial.print(".");
+        delay(100);
+      }
+      Serial.println("\n\nWelcome to serial mode");
+      Serial.println("Current timestamp:");
+      printTimestamp();
+      Serial.println("\nAlarm:");
+      printAlarm();
     }
     
     if (Serial.available() > 0) {

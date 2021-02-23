@@ -2,7 +2,7 @@
 
 #include <avr/sleep.h>
 
-int led = PIN_PA5;
+int led = PIN_PA7;
 
 void setup() {
   uint8_t temp;
@@ -31,8 +31,8 @@ void setup() {
   /* Initialize RTC: */
   while (RTC.STATUS > 0);
   /* 32.768kHz External Crystal Oscillator (XOSC32K) */
-  RTC.CLKSEL = RTC_CLKSEL_TOSC32K_gc;
-//    RTC.CLKSEL = RTC_CLKSEL_INT32K_gc; // internal
+//  RTC.CLKSEL = RTC_CLKSEL_TOSC32K_gc;
+    RTC.CLKSEL = RTC_CLKSEL_INT32K_gc; // internal
 
   RTC.PITINTCTRL = RTC_PI_bm; /* Periodic Interrupt: enabled */
 
@@ -46,8 +46,8 @@ void setup() {
   pinMode(PIN_PA2, INPUT_PULLUP);
   pinMode(PIN_PA3, INPUT_PULLUP);
   pinMode(PIN_PA4, INPUT_PULLUP);
+  pinMode(PIN_PA5, INPUT_PULLUP);
   pinMode(PIN_PA6, INPUT_PULLUP);
-  pinMode(PIN_PA7, INPUT_PULLUP);
   pinMode(PIN_PB0, INPUT_PULLUP);
   pinMode(PIN_PB1, INPUT_PULLUP);
 
