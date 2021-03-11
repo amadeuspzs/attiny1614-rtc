@@ -132,6 +132,7 @@ void loop() {
     
       if (incomingByte == 115) { // s(et) timestamp mode
         Serial.println("Enter timestamp: YYYYMMDDHHMMSSO");
+        Serial.println("O = Day of week, 0 = Sunday");
     
         while (Serial.available() < 15); // wait for serial input
         for (int i=0; i<14; i++) {
@@ -179,6 +180,18 @@ void loop() {
         printAlarm((alarmType == 100) ? "weekday" : "weekend");
       } else if (incomingByte == 114) { // r(ead) mode
         showState();
+      } else if (incomingByte == 119) { // w(ake length)
+        Serial.println("Enter wake length (1-9): ");
+        while (Serial.available() < 1); // wait for serial input
+        char wakeLengthInput = Serial.read();
+        wakeLength = wakeLengthInput - '0';
+        showState();
+      } else if (incomingByte == 102) { // f(ade length)
+        Serial.println("Enter fade length (1-9): ");
+        while (Serial.available() < 1); // wait for serial input
+        char fadeLengthInput = Serial.read();
+        fadeLength = fadeLengthInput - '0';
+        showState();        
       } else if (incomingByte == 113) { // q(uit) back to sleep
         Serial.println("Going back to sleep");
         Serial.flush();
@@ -186,7 +199,7 @@ void loop() {
         sleep_enable();
         sleep_cpu();
       } else {
-        Serial.println("Command not recognised.\n\ns(et timestamp), c(lock set), a(larm set), r(read) or q(uit)?");
+        Serial.println("Command not recognised.\n\ns(et timestamp), c(lock set), a(larm set), r(read), f(ade length), w(ake length), or q(uit)?");
       } // end checking for one character
     } // end if serial available
   } else { // end serialMode
@@ -362,4 +375,8 @@ void showState() {
   printAlarm("weekday");
   Serial.println("\nAlarm (weekend):");
   printAlarm("weekend");
+  Serial.print("\nFade length (mins):");
+  Serial.println(fadeLength);
+  Serial.print("\nWake length (mins):");
+  Serial.println(wakeLength);
 } // end showState
