@@ -7,14 +7,13 @@
 */
 
 #include <avr/sleep.h>
-#define led 7                           // positive lead of LED
+#define led 7                           // positive lead of LED, PB0
 
 volatile int current_sleeps = 0;        // counter for how many times PIT has woken up
 int target_sleeps = 2;                  // target for total sleep time. Increment of the RTC_PERIOD setting below
                                         // e.g. RTC_PERIOD_CYC32768_gc = 32s, target_sleeps = 2 -> 64s sleep
 // setup for the RTC
-void RTC_init(void)
-{
+void RTC_init(void) {
   // initialise RTC:
   while (RTC.STATUS > 0)
   {
@@ -29,8 +28,7 @@ void RTC_init(void)
 }
 
 // interrupt subroutine, runs when PIT wakes up
-ISR(RTC_PIT_vect)
-{
+ISR(RTC_PIT_vect) {
   current_sleeps += 1;                  // increment sleep counter
   RTC.PITINTFLAGS = RTC_PI_bm;          // clear interrupt flag by writing '1' (required)
 }
@@ -46,6 +44,16 @@ void blink(int times = 1, int interval = 100) {
 }
 
 void setup() {
+  // switch off unneeded pins for power saving
+  pinMode(PIN_PA1, INPUT_PULLUP);
+  pinMode(PIN_PA2, INPUT_PULLUP);
+  pinMode(PIN_PA3, INPUT_PULLUP);
+  pinMode(PIN_PA4, INPUT_PULLUP);
+  pinMode(PIN_PA5, INPUT_PULLUP);
+  pinMode(PIN_PA6, INPUT_PULLUP);
+  pinMode(PIN_PA7, INPUT_PULLUP);
+  pinMode(PIN_PB1, INPUT_PULLUP);
+  
   pinMode(led, OUTPUT);                 // blinker
   digitalWrite(led, LOW);               // turn off
   
@@ -53,7 +61,6 @@ void setup() {
   set_sleep_mode(SLEEP_MODE_PWR_DOWN);  // set sleep mode to POWER DOWN mode
   sleep_enable();                       // enable sleep mode, but not going to sleep yet
   sei();                                // enable interrupts
-
 }
 
 void loop() {
